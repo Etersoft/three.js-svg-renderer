@@ -1,0 +1,11 @@
+{
+  "name": "three.js-svg-renderer",
+  "version": "1.0.0",
+  "description": "Svg renderer taken from example",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "mrdoob",
+  "license": "ISC"
+}
