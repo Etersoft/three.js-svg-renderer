@@ -2,203 +2,255 @@
  * @author mrdoob / http://mrdoob.com/
  */
 
-
-if(typeof process === 'object'){
-    var THREE;
-    try {
-        THREE = require("three");
-    } catch(e){
-        THREE = require("three.js-amd");
-    }
-
+define(function(require, exports, module){
+    var THREE = reqire("three");
     var Projector = require("three.js-projector").Projector;
-}
 
-var SVGRenderer = function (d3, svg) {
+    var SVGRenderer = function (d3, svg) {
 
-    var _this = this,
-    _renderData, _elements, _lights,
-    _projector = new Projector(),
-    _d3 = d3,
-    _svgWidth, _svgHeight, _svgWidthHalf, _svgHeightHalf,
+        var _this = this,
+        _renderData, _elements, _lights,
+        _projector = new Projector(),
+        _d3 = d3,
+        _svgWidth, _svgHeight, _svgWidthHalf, _svgHeightHalf,
 
-    _v1, _v2, _v3, _v4,
+        _v1, _v2, _v3, _v4,
 
-    _clipBox = new THREE.Box2(),
-    _elemBox = new THREE.Box2(),
+        _clipBox = new THREE.Box2(),
+        _elemBox = new THREE.Box2(),
 
-    _color = new THREE.Color(),
-    _diffuseColor = new THREE.Color(),
-    _ambientLight = new THREE.Color(),
-    _directionalLights = new THREE.Color(),
-    _pointLights = new THREE.Color(),
-    _clearColor = new THREE.Color(),
-    _clearAlpha = 1,
+        _color = new THREE.Color(),
+        _diffuseColor = new THREE.Color(),
+        _ambientLight = new THREE.Color(),
+        _directionalLights = new THREE.Color(),
+        _pointLights = new THREE.Color(),
+        _clearColor = new THREE.Color(),
+        _clearAlpha = 1,
 
-    _w, // z-buffer to w-buffer
-    _vector3 = new THREE.Vector3(), // Needed for PointLight
-    _centroid = new THREE.Vector3(),
-    _normal = new THREE.Vector3(),
-    _normalViewMatrix = new THREE.Matrix3(),
+        _w, // z-buffer to w-buffer
+        _vector3 = new THREE.Vector3(), // Needed for PointLight
+        _centroid = new THREE.Vector3(),
+        _normal = new THREE.Vector3(),
+        _normalViewMatrix = new THREE.Matrix3(),
 
-    _viewMatrix = new THREE.Matrix4(),
-    _viewProjectionMatrix = new THREE.Matrix4(),
+        _viewMatrix = new THREE.Matrix4(),
+        _viewProjectionMatrix = new THREE.Matrix4(),
 
-    _svgPathPool = [], _svgLinePool = [], _svgRectPool = [],
-    _svgNode, _pathCount = 0, _lineCount = 0, _rectCount = 0,
-    _quality = 1;
+        _svgPathPool = [], _svgLinePool = [], _svgRectPool = [],
+        _svgNode, _pathCount = 0, _lineCount = 0, _rectCount = 0,
+        _quality = 1;
 
-    if(!svg.select) return;
+        if(!svg.select) return;
 
-    // c3.main
-    svg.select('g').attr('style', 'opacity:0;');
-    var tr = svg.select('g').attr('transform');
-    _this._svg = svg.append('g').classed('c3-three-chart', true).attr('transform', tr).node();
+        // c3.main
+        svg.select('g').attr('style', 'opacity:0;');
+        var tr = svg.select('g').attr('transform');
+        _this._svg = svg.append('g').classed('c3-three-chart', true).attr('transform', tr).node();
 
-    this.autoClear = true;
-    this.sortObjects = true;
-    this.sortElements = true;
+        this.autoClear = true;
+        this.sortObjects = true;
+        this.sortElements = true;
 
-    this.info = {
+        this.info = {
 
-        render: {
+            render: {
 
-            vertices: 0,
-            faces: 0
+                vertices: 0,
+                faces: 0
 
-        }
+            }
 
-    };
+        };
 
-    this.setQuality = function( quality ) {
+        this.setQuality = function( quality ) {
 
-        switch(quality) {
+            switch(quality) {
 
-            case "high": _quality = 1; break;
-            case "low": _quality = 0; break;
+                case "high": _quality = 1; break;
+                case "low": _quality = 0; break;
 
-        }
+            }
 
-    };
+        };
 
-    // WebGLRenderer compatibility
+        // WebGLRenderer compatibility
 
-    this.supportsVertexTextures = function () {};
-    this.setFaceCulling = function () {};
+        this.supportsVertexTextures = function () {};
+        this.setFaceCulling = function () {};
 
-    this.setClearColor = function ( color, alpha ) {
+        this.setClearColor = function ( color, alpha ) {
 
-        _clearColor.set( color );
-        _clearAlpha = alpha !== undefined ? alpha : 1;
+            _clearColor.set( color );
+            _clearAlpha = alpha !== undefined ? alpha : 1;
 
-    };
+        };
 
-    this.setSize = function( width, height ) {
-
-
-        _svgWidth = width; _svgHeight = height;
-        _svgWidthHalf = _svgWidth / 2 ; _svgHeightHalf = _svgHeight / 2;
-
-        var tr = _this._svg.getAttribute( 'transform' );
-        _this._svg.setAttribute( 'transform', tr + ' ' + getTr(_svgWidthHalf - 50, _svgHeightHalf) );
-
-        _clipBox.min.set( - _svgWidthHalf, - _svgHeightHalf );
-        _clipBox.max.set( _svgWidthHalf, _svgHeightHalf );
-
-    };
-
-    this.clear = function () {
-
-        _pathCount = 0;
-        _lineCount = 0;
-        _rectCount = 0;
-
-        while ( _this._svg && _this._svg.childNodes.length > 0 ) {
-
-            _this._svg.removeChild( _svg.childNodes[ 0 ] );
-
-        }
+        this.setSize = function( width, height ) {
 
 
-    };
+            _svgWidth = width; _svgHeight = height;
+            _svgWidthHalf = _svgWidth / 2 ; _svgHeightHalf = _svgHeight / 2;
 
-    this.render = function ( scene, camera ) {
+            var tr = _this._svg.getAttribute( 'transform' );
+            _this._svg.setAttribute( 'transform', tr + ' ' + getTr(_svgWidthHalf - 50, _svgHeightHalf) );
 
-        if ( camera instanceof THREE.Camera === false ) {
+            _clipBox.min.set( - _svgWidthHalf, - _svgHeightHalf );
+            _clipBox.max.set( _svgWidthHalf, _svgHeightHalf );
 
-            logger.error( 'THREE.SVGRenderer.render: camera is not an instance of THREE.Camera.' );
-            return;
+        };
 
-        }
+        this.clear = function () {
 
-        if ( this.autoClear === true ) this.clear();
+            _pathCount = 0;
+            _lineCount = 0;
+            _rectCount = 0;
 
-        _this.info.render.vertices = 0;
-        _this.info.render.faces = 0;
+            while ( _this._svg && _this._svg.childNodes.length > 0 ) {
 
-        _viewMatrix.copy( camera.matrixWorldInverse.getInverse( camera.matrixWorld ) );
-        _viewProjectionMatrix.multiplyMatrices( camera.projectionMatrix, _viewMatrix );
+                _this._svg.removeChild( _svg.childNodes[ 0 ] );
 
-        _renderData = _projector.projectScene( scene, camera, this.sortObjects, this.sortElements );
-        _elements = _renderData.elements;
-        _lights = _renderData.lights;
+            }
 
-        _normalViewMatrix.getNormalMatrix( camera.matrixWorldInverse );
 
-        calculateLights( _lights );
+        };
 
-        for ( var e = 0, el = _elements.length; e < el; e ++ ) {
+        this.render = function ( scene, camera ) {
 
-            var element = _elements[ e ];
-            var material = element.material;
+            if ( camera instanceof THREE.Camera === false ) {
 
-            if ( material === undefined || material.opacity === 0 ) continue;
+                logger.error( 'THREE.SVGRenderer.render: camera is not an instance of THREE.Camera.' );
+                return;
 
-            _elemBox.makeEmpty();
+            }
 
-            if ( element instanceof THREE.RenderableSprite ) {
+            if ( this.autoClear === true ) this.clear();
 
-                _v1 = element;
-                _v1.x *= _svgWidthHalf; _v1.y *= - _svgHeightHalf;
+            _this.info.render.vertices = 0;
+            _this.info.render.faces = 0;
 
-                renderSprite( _v1, element, material );
+            _viewMatrix.copy( camera.matrixWorldInverse.getInverse( camera.matrixWorld ) );
+            _viewProjectionMatrix.multiplyMatrices( camera.projectionMatrix, _viewMatrix );
 
-            } else if ( element instanceof THREE.RenderableLine ) {
+            _renderData = _projector.projectScene( scene, camera, this.sortObjects, this.sortElements );
+            _elements = _renderData.elements;
+            _lights = _renderData.lights;
 
-                _v1 = element.v1; _v2 = element.v2;
+            _normalViewMatrix.getNormalMatrix( camera.matrixWorldInverse );
 
-                _v1.positionScreen.x *= _svgWidthHalf; _v1.positionScreen.y *= - _svgHeightHalf;
-                _v2.positionScreen.x *= _svgWidthHalf; _v2.positionScreen.y *= - _svgHeightHalf;
+            calculateLights( _lights );
 
-                _elemBox.setFromPoints( [ _v1.positionScreen, _v2.positionScreen ] );
+            for ( var e = 0, el = _elements.length; e < el; e ++ ) {
 
-                if ( _clipBox.isIntersectionBox( _elemBox ) === true ) {
+                var element = _elements[ e ];
+                var material = element.material;
 
-                    renderLine( _v1, _v2, element, material );
+                if ( material === undefined || material.opacity === 0 ) continue;
+
+                _elemBox.makeEmpty();
+
+                if ( element instanceof THREE.RenderableSprite ) {
+
+                    _v1 = element;
+                    _v1.x *= _svgWidthHalf; _v1.y *= - _svgHeightHalf;
+
+                    renderSprite( _v1, element, material );
+
+                } else if ( element instanceof THREE.RenderableLine ) {
+
+                    _v1 = element.v1; _v2 = element.v2;
+
+                    _v1.positionScreen.x *= _svgWidthHalf; _v1.positionScreen.y *= - _svgHeightHalf;
+                    _v2.positionScreen.x *= _svgWidthHalf; _v2.positionScreen.y *= - _svgHeightHalf;
+
+                    _elemBox.setFromPoints( [ _v1.positionScreen, _v2.positionScreen ] );
+
+                    if ( _clipBox.isIntersectionBox( _elemBox ) === true ) {
+
+                        renderLine( _v1, _v2, element, material );
+
+                    }
+
+                } else if ( element instanceof THREE.RenderableFace ) {
+
+                    _v1 = element.v1; _v2 = element.v2; _v3 = element.v3;
+
+                    if ( _v1.positionScreen.z < -1 || _v1.positionScreen.z > 1 ) continue;
+                    if ( _v2.positionScreen.z < -1 || _v2.positionScreen.z > 1 ) continue;
+                    if ( _v3.positionScreen.z < -1 || _v3.positionScreen.z > 1 ) continue;
+
+                    _v1.positionScreen.x *= _svgWidthHalf; _v1.positionScreen.y *= - _svgHeightHalf;
+                    _v2.positionScreen.x *= _svgWidthHalf; _v2.positionScreen.y *= - _svgHeightHalf;
+                    _v3.positionScreen.x *= _svgWidthHalf; _v3.positionScreen.y *= - _svgHeightHalf;
+
+                    _elemBox.setFromPoints( [
+                        _v1.positionScreen,
+                        _v2.positionScreen,
+                        _v3.positionScreen
+                    ] );
+
+                    if ( _clipBox.isIntersectionBox( _elemBox ) === true ) {
+
+                        renderFace3( _v1, _v2, _v3, element, material );
+
+                    }
 
                 }
 
-            } else if ( element instanceof THREE.RenderableFace ) {
+            }
 
-                _v1 = element.v1; _v2 = element.v2; _v3 = element.v3;
+            scene.traverseVisible( function ( object ) {
 
-                if ( _v1.positionScreen.z < -1 || _v1.positionScreen.z > 1 ) continue;
-                if ( _v2.positionScreen.z < -1 || _v2.positionScreen.z > 1 ) continue;
-                if ( _v3.positionScreen.z < -1 || _v3.positionScreen.z > 1 ) continue;
+                 if ( object instanceof THREE.SVGObject ) {
 
-                _v1.positionScreen.x *= _svgWidthHalf; _v1.positionScreen.y *= - _svgHeightHalf;
-                _v2.positionScreen.x *= _svgWidthHalf; _v2.positionScreen.y *= - _svgHeightHalf;
-                _v3.positionScreen.x *= _svgWidthHalf; _v3.positionScreen.y *= - _svgHeightHalf;
+                    _vector3.setFromMatrixPosition( object.matrixWorld );
+                    _vector3.applyProjection( _viewProjectionMatrix );
 
-                _elemBox.setFromPoints( [
-                    _v1.positionScreen,
-                    _v2.positionScreen,
-                    _v3.positionScreen
-                ] );
+                    var x =   _vector3.x * _svgWidthHalf;
+                    var y = - _vector3.y * _svgHeightHalf;
 
-                if ( _clipBox.isIntersectionBox( _elemBox ) === true ) {
+                    var node = object.node;
+                    node.setAttribute( 'transform', 'translate(' + x + ',' + y + ')' );
 
-                    renderFace3( _v1, _v2, _v3, element, material );
+                    _this._svg.appendChild( node );
+
+                }
+
+            } );
+
+        };
+
+        function getTr( x, y ) {
+            return 'translate(' + x + ',' + y + ')';
+        }
+
+        function calculateLights( lights ) {
+
+            _ambientLight.setRGB( 0, 0, 0 );
+            _directionalLights.setRGB( 0, 0, 0 );
+            _pointLights.setRGB( 0, 0, 0 );
+
+            for ( var l = 0, ll = lights.length; l < ll; l++ ) {
+
+                var light = lights[ l ];
+                var lightColor = light.color;
+
+                if ( light instanceof THREE.AmbientLight ) {
+
+                    _ambientLight.r += lightColor.r;
+                    _ambientLight.g += lightColor.g;
+                    _ambientLight.b += lightColor.b;
+
+                } else if ( light instanceof THREE.DirectionalLight ) {
+
+                    _directionalLights.r += lightColor.r;
+                    _directionalLights.g += lightColor.g;
+                    _directionalLights.b += lightColor.b;
+
+                } else if ( light instanceof THREE.PointLight ) {
+
+                    _pointLights.r += lightColor.r;
+                    _pointLights.g += lightColor.g;
+                    _pointLights.b += lightColor.b;
 
                 }
 
@@ -206,224 +258,168 @@ var SVGRenderer = function (d3, svg) {
 
         }
 
-        scene.traverseVisible( function ( object ) {
+        function calculateLight( lights, position, normal, color ) {
 
-             if ( object instanceof THREE.SVGObject ) {
+            for ( var l = 0, ll = lights.length; l < ll; l ++ ) {
 
-                _vector3.setFromMatrixPosition( object.matrixWorld );
-                _vector3.applyProjection( _viewProjectionMatrix );
+                var light = lights[ l ];
+                var lightColor = light.color;
 
-                var x =   _vector3.x * _svgWidthHalf;
-                var y = - _vector3.y * _svgHeightHalf;
+                if ( light instanceof THREE.DirectionalLight ) {
 
-                var node = object.node;
-                node.setAttribute( 'transform', 'translate(' + x + ',' + y + ')' );
+                    var lightPosition = _vector3.setFromMatrixPosition( light.matrixWorld ).normalize();
 
-                _this._svg.appendChild( node );
+                    var amount = normal.dot( lightPosition );
 
-            }
+                    if ( amount <= 0 ) continue;
 
-        } );
+                    amount *= light.intensity;
 
-    };
+                    color.r += lightColor.r * amount;
+                    color.g += lightColor.g * amount;
+                    color.b += lightColor.b * amount;
 
-    function getTr( x, y ) {
-        return 'translate(' + x + ',' + y + ')';
-    }
+                } else if ( light instanceof THREE.PointLight ) {
 
-    function calculateLights( lights ) {
+                    var lightPosition = _vector3.setFromMatrixPosition( light.matrixWorld );
 
-        _ambientLight.setRGB( 0, 0, 0 );
-        _directionalLights.setRGB( 0, 0, 0 );
-        _pointLights.setRGB( 0, 0, 0 );
+                    var amount = normal.dot( _vector3.subVectors( lightPosition, position ).normalize() );
 
-        for ( var l = 0, ll = lights.length; l < ll; l++ ) {
+                    if ( amount <= 0 ) continue;
 
-            var light = lights[ l ];
-            var lightColor = light.color;
+                    amount *= light.distance === 0 ? 1 : 1 - Math.min( position.distanceTo( lightPosition ) / light.distance, 1 );
 
-            if ( light instanceof THREE.AmbientLight ) {
+                    if ( amount === 0 ) continue;
 
-                _ambientLight.r += lightColor.r;
-                _ambientLight.g += lightColor.g;
-                _ambientLight.b += lightColor.b;
+                    amount *= light.intensity;
 
-            } else if ( light instanceof THREE.DirectionalLight ) {
+                    color.r += lightColor.r * amount;
+                    color.g += lightColor.g * amount;
+                    color.b += lightColor.b * amount;
 
-                _directionalLights.r += lightColor.r;
-                _directionalLights.g += lightColor.g;
-                _directionalLights.b += lightColor.b;
-
-            } else if ( light instanceof THREE.PointLight ) {
-
-                _pointLights.r += lightColor.r;
-                _pointLights.g += lightColor.g;
-                _pointLights.b += lightColor.b;
+                }
 
             }
 
         }
 
-    }
+        function renderSprite( v1, element, material ) {
 
-    function calculateLight( lights, position, normal, color ) {
+            var scaleX = element.scale.x * _svgWidthHalf;
+            var scaleY = element.scale.y * _svgHeightHalf;
 
-        for ( var l = 0, ll = lights.length; l < ll; l ++ ) {
+            _svgNode = getRectNode( _rectCount ++ );
 
-            var light = lights[ l ];
-            var lightColor = light.color;
+            _svgNode.setAttribute( 'x', v1.x - ( scaleX * 0.5 ) );
+            _svgNode.setAttribute( 'y', v1.y - ( scaleY * 0.5 ) );
+            _svgNode.setAttribute( 'width', scaleX );
+            _svgNode.setAttribute( 'height', scaleY );
 
-            if ( light instanceof THREE.DirectionalLight ) {
+            if ( material instanceof THREE.SpriteMaterial ) {
 
-                var lightPosition = _vector3.setFromMatrixPosition( light.matrixWorld ).normalize();
-
-                var amount = normal.dot( lightPosition );
-
-                if ( amount <= 0 ) continue;
-
-                amount *= light.intensity;
-
-                color.r += lightColor.r * amount;
-                color.g += lightColor.g * amount;
-                color.b += lightColor.b * amount;
-
-            } else if ( light instanceof THREE.PointLight ) {
-
-                var lightPosition = _vector3.setFromMatrixPosition( light.matrixWorld );
-
-                var amount = normal.dot( _vector3.subVectors( lightPosition, position ).normalize() );
-
-                if ( amount <= 0 ) continue;
-
-                amount *= light.distance === 0 ? 1 : 1 - Math.min( position.distanceTo( lightPosition ) / light.distance, 1 );
-
-                if ( amount === 0 ) continue;
-
-                amount *= light.intensity;
-
-                color.r += lightColor.r * amount;
-                color.g += lightColor.g * amount;
-                color.b += lightColor.b * amount;
+                _svgNode.setAttribute( 'style', 'fill: ' + material.color.getStyle() );
 
             }
-
-        }
-
-    }
-
-    function renderSprite( v1, element, material ) {
-
-        var scaleX = element.scale.x * _svgWidthHalf;
-        var scaleY = element.scale.y * _svgHeightHalf;
-
-        _svgNode = getRectNode( _rectCount ++ );
-
-        _svgNode.setAttribute( 'x', v1.x - ( scaleX * 0.5 ) );
-        _svgNode.setAttribute( 'y', v1.y - ( scaleY * 0.5 ) );
-        _svgNode.setAttribute( 'width', scaleX );
-        _svgNode.setAttribute( 'height', scaleY );
-
-        if ( material instanceof THREE.SpriteMaterial ) {
-
-            _svgNode.setAttribute( 'style', 'fill: ' + material.color.getStyle() );
-
-        }
-
-        _this._svg.appendChild( _svgNode );
-
-    }
-
-    function renderLine( v1, v2, element, material ) {
-
-        _svgNode = getLineNode( _lineCount ++ );
-
-        _svgNode.setAttribute( 'x1', v1.positionScreen.x );
-        _svgNode.setAttribute( 'y1', v1.positionScreen.y );
-        _svgNode.setAttribute( 'x2', v2.positionScreen.x );
-        _svgNode.setAttribute( 'y2', v2.positionScreen.y );
-
-        if ( material instanceof THREE.LineBasicMaterial ) {
-
-            _svgNode.setAttribute( 'style', 'fill: none; stroke: ' + material.color.getStyle() + '; stroke-width: ' + material.linewidth + '; stroke-opacity: ' + material.opacity + '; stroke-linecap: ' + material.linecap + '; stroke-linejoin: ' + material.linejoin );
 
             _this._svg.appendChild( _svgNode );
 
         }
 
-    }
+        function renderLine( v1, v2, element, material ) {
 
-    function renderFace3( v1, v2, v3, element, material ) {
+            _svgNode = getLineNode( _lineCount ++ );
 
-        _this.info.render.vertices += 3;
-        _this.info.render.faces ++;
+            _svgNode.setAttribute( 'x1', v1.positionScreen.x );
+            _svgNode.setAttribute( 'y1', v1.positionScreen.y );
+            _svgNode.setAttribute( 'x2', v2.positionScreen.x );
+            _svgNode.setAttribute( 'y2', v2.positionScreen.y );
 
-        _svgNode = getPathNode( _pathCount ++ );
-        _svgNode.setAttribute( 'd', 'M ' + v1.positionScreen.x + ' ' + v1.positionScreen.y + ' L ' + v2.positionScreen.x + ' ' + v2.positionScreen.y + ' L ' + v3.positionScreen.x + ',' + v3.positionScreen.y + 'z' );
+            if ( material instanceof THREE.LineBasicMaterial ) {
 
-        if ( material instanceof THREE.MeshBasicMaterial ) {
+                _svgNode.setAttribute( 'style', 'fill: none; stroke: ' + material.color.getStyle() + '; stroke-width: ' + material.linewidth + '; stroke-opacity: ' + material.opacity + '; stroke-linecap: ' + material.linecap + '; stroke-linejoin: ' + material.linejoin );
 
-            _color.copy( material.color );
-
-            if ( material.vertexColors === THREE.FaceColors ) {
-
-                _color.multiply( element.color );
+                _this._svg.appendChild( _svgNode );
 
             }
 
-        } else if ( material instanceof THREE.MeshLambertMaterial || material instanceof THREE.MeshPhongMaterial ) {
+        }
 
-            _diffuseColor.copy( material.color );
+        function renderFace3( v1, v2, v3, element, material ) {
 
-            if ( material.vertexColors === THREE.FaceColors ) {
+            _this.info.render.vertices += 3;
+            _this.info.render.faces ++;
 
-                _diffuseColor.multiply( element.color );
+            _svgNode = getPathNode( _pathCount ++ );
+            _svgNode.setAttribute( 'd', 'M ' + v1.positionScreen.x + ' ' + v1.positionScreen.y + ' L ' + v2.positionScreen.x + ' ' + v2.positionScreen.y + ' L ' + v3.positionScreen.x + ',' + v3.positionScreen.y + 'z' );
+
+            if ( material instanceof THREE.MeshBasicMaterial ) {
+
+                _color.copy( material.color );
+
+                if ( material.vertexColors === THREE.FaceColors ) {
+
+                    _color.multiply( element.color );
+
+                }
+
+            } else if ( material instanceof THREE.MeshLambertMaterial || material instanceof THREE.MeshPhongMaterial ) {
+
+                _diffuseColor.copy( material.color );
+
+                if ( material.vertexColors === THREE.FaceColors ) {
+
+                    _diffuseColor.multiply( element.color );
+
+                }
+
+                _color.copy( _ambientLight );
+
+                _centroid.copy( v1.positionWorld ).add( v2.positionWorld ).add( v3.positionWorld ).divideScalar( 3 );
+
+                calculateLight( _lights, _centroid, element.normalModel, _color );
+
+                _color.multiply( _diffuseColor ).add( material.emissive );
+
+            } else if ( material instanceof THREE.MeshDepthMaterial ) {
+
+                _w = 1 - ( material.__2near / (material.__farPlusNear - element.z * material.__farMinusNear) );
+                _color.setRGB( _w, _w, _w );
+
+            } else if ( material instanceof THREE.MeshNormalMaterial ) {
+
+                _normal.copy( element.normalModel ).applyMatrix3( _normalViewMatrix );
+
+                _color.setRGB( _normal.x, _normal.y, _normal.z ).multiplyScalar( 0.5 ).addScalar( 0.5 );
 
             }
 
-            _color.copy( _ambientLight );
+            if ( material.wireframe ) {
 
-            _centroid.copy( v1.positionWorld ).add( v2.positionWorld ).add( v3.positionWorld ).divideScalar( 3 );
+                _svgNode.setAttribute( 'style', 'fill: none; stroke: ' + _color.getStyle() + '; stroke-width: ' + material.wireframeLinewidth + '; stroke-opacity: ' + material.opacity + '; stroke-linecap: ' + material.wireframeLinecap + '; stroke-linejoin: ' + material.wireframeLinejoin );
 
-            calculateLight( _lights, _centroid, element.normalModel, _color );
+            } else {
 
-            _color.multiply( _diffuseColor ).add( material.emissive );
+                _svgNode.setAttribute( 'style', 'fill: ' + _color.getStyle() + '; stroke:none; fill-opacity: ' + material.opacity );
 
-        } else if ( material instanceof THREE.MeshDepthMaterial ) {
+            }
 
-            _w = 1 - ( material.__2near / (material.__farPlusNear - element.z * material.__farMinusNear) );
-            _color.setRGB( _w, _w, _w );
-
-        } else if ( material instanceof THREE.MeshNormalMaterial ) {
-
-            _normal.copy( element.normalModel ).applyMatrix3( _normalViewMatrix );
-
-            _color.setRGB( _normal.x, _normal.y, _normal.z ).multiplyScalar( 0.5 ).addScalar( 0.5 );
+            _this._svg.appendChild( _svgNode );
 
         }
 
-        if ( material.wireframe ) {
+        function getLineNode( id ) {
 
-            _svgNode.setAttribute( 'style', 'fill: none; stroke: ' + _color.getStyle() + '; stroke-width: ' + material.wireframeLinewidth + '; stroke-opacity: ' + material.opacity + '; stroke-linecap: ' + material.wireframeLinecap + '; stroke-linejoin: ' + material.wireframeLinejoin );
+            if (!_svgLinePool[ id ]) {
 
-        } else {
+                _svgLinePool[ id ] = document.createElementNS( 'http://www.w3.org/2000/svg', 'line' );
 
-            _svgNode.setAttribute( 'style', 'fill: ' + _color.getStyle() + '; stroke:none; fill-opacity: ' + material.opacity );
+                if ( _quality === 0 ) {
 
-        }
+                    _svgLinePool[ id ].setAttribute( 'shape-rendering', 'crispEdges' ); //optimizeSpeed
 
-        _this._svg.appendChild( _svgNode );
+                }
 
-    }
-
-    function getLineNode( id ) {
-
-        if (!_svgLinePool[ id ]) {
-
-            _svgLinePool[ id ] = document.createElementNS( 'http://www.w3.org/2000/svg', 'line' );
-
-            if ( _quality === 0 ) {
-
-                _svgLinePool[ id ].setAttribute( 'shape-rendering', 'crispEdges' ); //optimizeSpeed
+                return _svgLinePool[ id ];
 
             }
 
@@ -431,19 +427,19 @@ var SVGRenderer = function (d3, svg) {
 
         }
 
-        return _svgLinePool[ id ];
+        function getPathNode( id ) {
 
-    }
+            if (!_svgPathPool[ id ]) {
 
-    function getPathNode( id ) {
+                _svgPathPool[ id ] = document.createElementNS( 'http://www.w3.org/2000/svg', 'path' );
 
-        if (!_svgPathPool[ id ]) {
+                if ( _quality === 0 ) {
 
-            _svgPathPool[ id ] = document.createElementNS( 'http://www.w3.org/2000/svg', 'path' );
+                    _svgPathPool[ id ].setAttribute( 'shape-rendering', 'crispEdges' ); //optimizeSpeed
 
-            if ( _quality === 0 ) {
+                }
 
-                _svgPathPool[ id ].setAttribute( 'shape-rendering', 'crispEdges' ); //optimizeSpeed
+                return _svgPathPool[ id ];
 
             }
 
@@ -451,19 +447,19 @@ var SVGRenderer = function (d3, svg) {
 
         }
 
-        return _svgPathPool[ id ];
+        function getRectNode( id ) {
 
-    }
+            if (!_svgRectPool[ id ]) {
 
-    function getRectNode( id ) {
+                _svgRectPool[ id ] = document.createElementNS( 'http://www.w3.org/2000/svg', 'rect' );
 
-        if (!_svgRectPool[ id ]) {
+                if ( _quality === 0 ) {
 
-            _svgRectPool[ id ] = document.createElementNS( 'http://www.w3.org/2000/svg', 'rect' );
+                    _svgRectPool[ id ].setAttribute( 'shape-rendering', 'crispEdges' ); //optimizeSpeed
 
-            if ( _quality === 0 ) {
+                }
 
-                _svgRectPool[ id ].setAttribute( 'shape-rendering', 'crispEdges' ); //optimizeSpeed
+                return _svgRectPool[ id ];
 
             }
 
@@ -471,18 +467,7 @@ var SVGRenderer = function (d3, svg) {
 
         }
 
-        return _svgRectPool[ id ];
+    };
 
-    }
-
-};
-
-if ( typeof define === 'function' && define.amd ) {
-
-        define( 'three.js-svg-renderer', SVGRenderer );
-
-} else if ( 'undefined' !== typeof exports && 'undefined' !== typeof module ) {
-
-        module.exports = SVGRenderer;
-
-}
+    module.exports = SVGRenderer;
+});
