@@ -1,6 +1,6 @@
 {
   "name": "three.js-svg-renderer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Svg renderer taken from example",
   "main": "index.js",
   "scripts": {

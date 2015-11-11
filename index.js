@@ -20,7 +20,7 @@ define(function(require, exports, module){
     THREE.SVGObject.prototype.constructor = THREE.SVGObject;
 
 
-    var D3Renderer = function (d3, svg) {
+    var SVGRenderer = function (d3, svg) {
 
         var _this = this,
         _renderData, _elements, _lights,
@@ -130,7 +130,7 @@ define(function(require, exports, module){
 
             if ( camera instanceof THREE.Camera === false ) {
 
-                logger.error( 'THREE.D3Renderer.render: camera is not an instance of THREE.Camera.' );
+                logger.error( 'THREE.SVGRenderer.render: camera is not an instance of THREE.Camera.' );
                 return;
 
             }
@@ -481,6 +481,6 @@ define(function(require, exports, module){
 
     };
 
-    module.exports.D3Renderer = D3Renderer;
+    module.exports.SVGRenderer = SVGRenderer;
 
 });
