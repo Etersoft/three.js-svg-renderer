@@ -10,13 +10,15 @@ if(typeof process === 'object'){
     } catch(e){
         THREE = require("three.js-amd");
     }
+
+    var Projector = require("three.js-projector").Projector;
 }
 
 var SVGRenderer = function (d3, svg) {
 
     var _this = this,
     _renderData, _elements, _lights,
-    _projector = new THREE.Projector(),
+    _projector = new Projector(),
     _d3 = d3,
     _svgWidth, _svgHeight, _svgWidthHalf, _svgHeightHalf,
 
