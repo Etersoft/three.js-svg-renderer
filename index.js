@@ -3,7 +3,7 @@
  */
 
 define(function(require, exports, module){
-    var THREE = reqire("three");
+    var THREE = require("three");
     var Projector = require("three.js-projector").Projector;
 
     var SVGRenderer = function (d3, svg) {
