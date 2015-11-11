@@ -48,6 +48,8 @@ var SVGRenderer = function (d3, svg) {
     _svgNode, _pathCount = 0, _lineCount = 0, _rectCount = 0,
     _quality = 1;
 
+    if(!svg.select) return;
+
     // c3.main
     svg.select('g').attr('style', 'opacity:0;');
     var tr = svg.select('g').attr('transform');
