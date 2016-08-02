@@ -1,6 +1,6 @@
 {
   "name": "three.js-svg-renderer",
-  "version": "1.1.0",
+  "version": "3.0.1",
   "description": "Svg renderer taken from example",
   "main": "index.js",
   "scripts": {
@@ -9,6 +9,6 @@
   "author": "mrdoob",
   "license": "ISC",
   "dependencies": {
-    "three.js-projector": "1.0.4"
+    "three.js-projector": "3.0.1"
   }
 }
